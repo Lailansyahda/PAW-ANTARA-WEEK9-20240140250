@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Catatan — Todo API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EFECE2;
+    --card: #FBFAF6;
+    --ink: #23271F;
+    --ink-soft: #5B5F54;
+    --line: #D9D4C4;
+    --teal: #3E6659;
+    --teal-deep: #2B4A40;
+    --mustard: #C7973B;
+    --rust: #A8452F;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, rgba(62,102,89,0.05), transparent 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .brand{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  /* ---- Auth screen ---- */
+  #auth-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .auth-card{
+    width:100%;
+    max-width:380px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:40px 36px;
+    position:relative;
+    box-shadow:0 1px 0 rgba(0,0,0,0.02);
+  }
+  .auth-card::before{
+    content:"";
+    position:absolute;
+    top:0; left:28px;
+    width:2px; height:22px;
+    background:var(--mustard);
+  }
+  .auth-eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--teal);
+    margin:0 0 6px;
+  }
+  .auth-card h1{
+    font-size:28px;
+    margin:0 0 28px;
+    line-height:1.15;
+  }
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .field input{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:#fff;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .field input:focus{ border-color:var(--teal); }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    padding:11px 16px;
+    border:none;
+    border-radius:var(--radius);
+    background:var(--teal);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .btn:hover{ background:var(--teal-deep); }
+  .btn:focus-visible, input:focus-visible, .icon-btn:focus-visible, .tag-pill:focus-visible{
+    outline:2px solid var(--teal-deep);
+    outline-offset:2px;
+  }
+  .btn-ghost{
+    background:transparent;
+    color:var(--teal);
+    border:1px solid var(--line);
+  }
+  .btn-ghost:hover{ background:#fff; }
+
+  .auth-switch{
+    margin-top:18px;
+    font-size:13px;
+    color:var(--ink-soft);
+    text-align:center;
+  }
+  .auth-switch button{
+    background:none; border:none; padding:0;
+    color:var(--teal-deep);
+    font-weight:600; cursor:pointer;
+    text-decoration:underline;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  .form-msg{
+    font-size:13px;
+    margin-top:14px;
+    padding:9px 12px;
+    border-radius:var(--radius);
+    display:none;
+  }
+  .form-msg.show{ display:block; }
+  .form-msg.err{ background:#F6E6E1; color:var(--rust); }
+  .form-msg.ok{ background:#E4EDE9; color:var(--teal-deep); }
+
+  /* ---- App shell ---- */
+  #app-screen{ display:none; min-height:100vh; }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 32px;
+    border-bottom:1px solid var(--line);
+  }
+  .topbar .who{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .topbar .who b{ color:var(--ink); }
+  .logout-link{
+    background:none;border:none;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns:240px 1fr;
+    max-width:980px;
+    margin:0 auto;
+    padding:32px;
+    gap:36px;
+  }
+  @media (max-width:720px){
+    .layout{ grid-template-columns:1fr; padding:20px; }
+  }
+
+  .panel-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+  }
+
+  /* Category sidebar — catalog tabs */
+  .cat-list{ list-style:none; margin:0 0 16px; padding:0; }
+  .cat-item{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:6px;
+    padding:9px 10px;
+    border-radius:var(--radius);
+    cursor:pointer;
+    font-size:14px;
+    margin-bottom:2px;
+    border-left:3px solid transparent;
+  }
+  .cat-item:hover{ background:rgba(0,0,0,0.03); }
+  .cat-item.active{
+    background:#fff;
+    border-left:3px solid var(--mustard);
+    font-weight:600;
+  }
+  .cat-item .cat-del{
+    opacity:0; border:none; background:none; cursor:pointer;
+    color:var(--rust); font-size:13px; line-height:1;
+  }
+  .cat-item:hover .cat-del{ opacity:0.7; }
+  .cat-item .cat-del:hover{ opacity:1; }
+
+  .add-cat{ display:flex; gap:6px; margin-top:10px; }
+  .add-cat input{
+    flex:1; padding:8px 10px; font-size:13px;
+    border:1px solid var(--line); border-radius:var(--radius);
+    background:#fff; outline:none;
+  }
+  .add-cat input:focus{ border-color:var(--teal); }
+  .icon-btn{
+    width:34px; flex-shrink:0;
+    border:1px solid var(--line);
+    background:#fff; border-radius:var(--radius);
+    cursor:pointer; font-size:16px; color:var(--teal-deep);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ background:var(--teal); color:#fff; border-color:var(--teal); }
+
+  /* Todo column */
+  .todo-add{ display:flex; gap:8px; margin-bottom:20px; }
+  .todo-add input[type=text]{
+    flex:1; padding:11px 12px; font-size:14px;
+    border:1px solid var(--line); border-radius:var(--radius);
+    background:#fff; outline:none;
+  }
+  .todo-add input:focus{ border-color:var(--teal); }
+  .todo-add select{
+    padding:11px 10px; font-size:13px;
+    border:1px solid var(--line); border-radius:var(--radius);
+    background:#fff; color:var(--ink-soft); max-width:140px;
+  }
+  .todo-add .btn{ width:auto; padding:11px 18px; }
+
+  .todo-list{
+    list-style:none; margin:0; padding:0 0 0 18px;
+    border-left:2px dotted var(--line);
+  }
+  .todo-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    margin-bottom:10px;
+    display:flex; align-items:flex-start; gap:12px;
+    position:relative;
+  }
+  .todo-card::before{
+    content:"";
+    position:absolute; left:-20px; top:22px;
+    width:9px; height:9px; border-radius:50%;
+    background:var(--paper);
+    border:2px solid var(--line);
+  }
+  .todo-check{
+    width:20px; height:20px; flex-shrink:0; margin-top:2px;
+    border:1.5px solid var(--teal); border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; background:#fff; color:#fff; font-size:12px;
+  }
+  .todo-check.done{ background:var(--teal); }
+  .todo-body{ flex:1; min-width:0; }
+  .todo-title{
+    font-size:15px; margin:0 0 4px; word-break:break-word;
+  }
+  .todo-card.done .todo-title{
+    text-decoration:line-through; color:var(--ink-soft);
+  }
+  .todo-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tag-pill{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    padding:2px 8px;
+    border-radius:20px;
+    background:#E4EDE9;
+    color:var(--teal-deep);
+    border:none;
+  }
+  .todo-del{
+    background:none; border:none; cursor:pointer;
+    color:var(--ink-soft); font-size:13px; flex-shrink:0;
+    padding:4px;
+  }
+  .todo-del:hover{ color:var(--rust); }
+  .empty-state{
+    padding:28px 16px; text-align:center;
+    color:var(--ink-soft); font-size:13px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <p class="auth-eyebrow" id="auth-eyebrow">Masuk</p>
+    <h1 class="brand" id="auth-title">Selamat datang kembali</h1>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="login-username">Username</label>
+        <input id="login-username" type="text" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn">Login</button>
+      <p class="auth-switch">Belum punya akun? <button type="button" id="show-register">Daftar</button></p>
+    </form>
+
+    <form id="register-form" style="display:none;">
+      <div class="field">
+        <label for="reg-username">Username</label>
+        <input id="reg-username" type="text" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="reg-password">Password</label>
+        <input id="reg-password" type="password" autocomplete="new-password" required />
+      </div>
+      <button type="submit" class="btn">Daftar</button>
+      <p class="auth-switch">Sudah punya akun? <button type="button" id="show-login">Login</button></p>
+    </form>
+
+    <div id="auth-msg" class="form-msg"></div>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="who">masuk sebagai <b id="who-username">-</b></div>
+    <button class="logout-link" id="logout-btn">keluar</button>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar: categories -->
+    <div>
+      <p class="panel-title">Kategori</p>
+      <ul class="cat-list" id="cat-list">
+        <li class="cat-item active" data-id="">
+          <span>Semua todo</span>
+        </li>
+      </ul>
+      <div class="add-cat">
+        <input id="new-cat-input" type="text" placeholder="Kategori baru…" maxlength="40" />
+        <button class="icon-btn" id="add-cat-btn" title="Tambah kategori">+</button>
+      </div>
+    </div>
+
+    <!-- Main: todos -->
+    <div>
+      <p class="panel-title" id="list-title">Semua todo</p>
+      <form class="todo-add" id="todo-add-form">
+        <input type="text" id="new-todo-input" placeholder="Tulis todo baru…" maxlength="200" required />
+        <select id="new-todo-category"><option value="">Tanpa kategori</option></select>
+        <button type="submit" class="btn">Tambah</button>
+      </form>
+
+      <ul class="todo-list" id="todo-list"></ul>
+      <div class="empty-state" id="empty-state" style="display:none;">Belum ada todo di sini.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "/api";
+let categories = [];
+let todos = [];
+let activeCategory = "";
+let currentUser = null;
+
+function j(res){ return res.json(); }
+
+async function api(path, opts={}){
+  const res = await fetch(API + path, {
+    method: opts.method || "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await j(res);
+  if(!res.ok || data.success === false){
+    throw new Error(data.message || "Terjadi kesalahan");
+  }
+  return data;
+}
+
+/* ---------- Auth ---------- */
+const authScreen = document.getElementById("auth-screen");
+const appScreen = document.getElementById("app-screen");
+const authMsg = document.getElementById("auth-msg");
+const loginForm = document.getElementById("login-form");
+const registerForm = document.getElementById("register-form");
+
+function showAuthMsg(text, ok){
+  authMsg.textContent = text;
+  authMsg.className = "form-msg show " + (ok ? "ok" : "err");
+}
+
+document.getElementById("show-register").onclick = () => {
+  loginForm.style.display = "none";
+  registerForm.style.display = "block";
+  document.getElementById("auth-eyebrow").textContent = "Daftar";
+  document.getElementById("auth-title").textContent = "Bikin akun baru";
+  authMsg.className = "form-msg";
+};
+document.getElementById("show-login").onclick = () => {
+  registerForm.style.display = "none";
+  loginForm.style.display = "block";
+  document.getElementById("auth-eyebrow").textContent = "Masuk";
+  document.getElementById("auth-title").textContent = "Selamat datang kembali";
+  authMsg.className = "form-msg";
+};
+
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try{
+    const data = await api("/auth/login", { method:"POST", body:{
+      username: document.getElementById("login-username").value.trim(),
+      password: document.getElementById("login-password").value,
+    }});
+    currentUser = data.data;
+    sessionStorage.setItem("username", currentUser.username);
+    enterApp();
+  }catch(err){ showAuthMsg(err.message, false); }
+});
+
+registerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try{
+    await api("/auth/register", { method:"POST", body:{
+      username: document.getElementById("reg-username").value.trim(),
+      password: document.getElementById("reg-password").value,
+    }});
+    showAuthMsg("Akun dibuat, silakan login.", true);
+    document.getElementById("show-login").click();
+  }catch(err){ showAuthMsg(err.message, false); }
+});
+
+document.getElementById("logout-btn").onclick = async () => {
+  try{ await api("/auth/logout", { method:"POST" }); }catch(e){}
+  currentUser = null;
+  sessionStorage.removeItem("username");
+  appScreen.style.display = "none";
+  authScreen.style.display = "flex";
+};
+
+async function enterApp(){
+  authScreen.style.display = "none";
+  appScreen.style.display = "block";
+  document.getElementById("who-username").textContent = currentUser.username;
+  await Promise.all([loadCategories(), loadTodos()]);
+  render();
+}
+
+/* ---------- Data ---------- */
+async function loadCategories(){
+  const data = await api("/categories");
+  categories = data.data;
+}
+async function loadTodos(){
+  const data = await api("/todos");
+  todos = data.data;
+}
+
+/* ---------- Category UI ---------- */
+const catList = document.getElementById("cat-list");
+const catSelect = document.getElementById("new-todo-category");
+const listTitle = document.getElementById("list-title");
+
+function renderCategories(){
+  catList.innerHTML = "";
+  const allItem = document.createElement("li");
+  allItem.className = "cat-item" + (activeCategory === "" ? " active" : "");
+  allItem.innerHTML = "<span>Semua todo</span>";
+  allItem.onclick = () => { activeCategory = ""; render(); };
+  catList.appendChild(allItem);
+
+  categories.forEach(cat => {
+    const li = document.createElement("li");
+    li.className = "cat-item" + (activeCategory === cat.id ? " active" : "");
+    li.innerHTML = `<span>${escapeHtml(cat.name)}</span><button class="cat-del" title="Hapus kategori">✕</button>`;
+    li.querySelector("span").onclick = () => { activeCategory = cat.id; render(); };
+    li.querySelector(".cat-del").onclick = async (e) => {
+      e.stopPropagation();
+      if(!confirm(`Hapus kategori "${cat.name}"?`)) return;
+      await api(`/categories/${cat.id}`, { method:"DELETE" });
+      if(activeCategory === cat.id) activeCategory = "";
+      await Promise.all([loadCategories(), loadTodos()]);
+      render();
+    };
+    catList.appendChild(li);
+  });
+
+  catSelect.innerHTML = '<option value="">Tanpa kategori</option>' +
+    categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+
+  listTitle.textContent = activeCategory === ""
+    ? "Semua todo"
+    : (categories.find(c => c.id === activeCategory)?.name || "Todo");
+}
+
+document.getElementById("add-cat-btn").onclick = addCategory;
+document.getElementById("new-cat-input").addEventListener("keydown", (e) => {
+  if(e.key === "Enter"){ e.preventDefault(); addCategory(); }
+});
+async function addCategory(){
+  const input = document.getElementById("new-cat-input");
+  const name = input.value.trim();
+  if(!name) return;
+  await api("/categories", { method:"POST", body:{ name } });
+  input.value = "";
+  await loadCategories();
+  render();
+}
+
+/* ---------- Todo UI ---------- */
+const todoList = document.getElementById("todo-list");
+const emptyState = document.getElementById("empty-state");
+
+function renderTodos(){
+  const filtered = activeCategory === ""
+    ? todos
+    : todos.filter(t => t.category_id === activeCategory);
+
+  todoList.innerHTML = "";
+  emptyState.style.display = filtered.length ? "none" : "block";
+
+  filtered.forEach(todo => {
+    const cat = categories.find(c => c.id === todo.category_id);
+    const li = document.createElement("li");
+    li.className = "todo-card" + (todo.is_done ? " done" : "");
+    li.innerHTML = `
+      <div class="todo-check ${todo.is_done ? "done" : ""}" title="Tandai selesai">${todo.is_done ? "✓" : ""}</div>
+      <div class="todo-body">
+        <p class="todo-title">${escapeHtml(todo.title)}</p>
+        <div class="todo-meta">
+          ${cat ? `<span class="tag-pill">${escapeHtml(cat.name)}</span>` : ""}
+        </div>
+      </div>
+      <button class="todo-del" title="Hapus todo">✕</button>
+    `;
+    li.querySelector(".todo-check").onclick = async () => {
+      await api(`/todos/${todo.id}`, { method:"PUT", body:{ is_done: !todo.is_done } });
+      await loadTodos();
+      render();
+    };
+    li.querySelector(".todo-del").onclick = async () => {
+      await api(`/todos/${todo.id}`, { method:"DELETE" });
+      await loadTodos();
+      render();
+    };
+    todoList.appendChild(li);
+  });
+}
+
+document.getElementById("todo-add-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = document.getElementById("new-todo-input");
+  const title = input.value.trim();
+  if(!title) return;
+  const category_id = catSelect.value ? Number(catSelect.value) : undefined;
+  await api("/todos", { method:"POST", body:{ title, category_id } });
+  input.value = "";
+  await loadTodos();
+  render();
+});
+
+function render(){
+  renderCategories();
+  renderTodos();
+}
+
+function escapeHtml(str){
+  const d = document.createElement("div");
+  d.textContent = str ?? "";
+  return d.innerHTML;
+}
+
+/* ---------- Boot: cek udah login atau belum ---------- */
+(async function boot(){
+  try{
+    const data = await api("/todos"); // kalau berhasil, berarti session masih valid
+    document.getElementById("who-username").textContent = sessionStorage.getItem("username") || "kamu";
+    todos = data.data;
+    await loadCategories();
+    authScreen.style.display = "none";
+    appScreen.style.display = "block";
+    render();
+  }catch(err){
+    authScreen.style.display = "flex";
+    appScreen.style.display = "none";
+  }
+})();
+</script>
+</body>
+</html>
